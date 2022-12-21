@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="styles.css">
+	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
+	integrity="sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI="
+	crossorigin=""/>
+	<!-- CSS only -->
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
+	<title>Document</title>
+	<add name="Access-Control-Allow-Headers" value="Content-Type" />
+	<script src="http://code.jquery.com/jquery.min.js"></script>
+	<script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"
+	integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM="
+	crossorigin=""></script>
+
+
+
+
+</head>
+
+<body class="background">
+	<h1 class="display-1">Plane Tracker</h1>
+
+
+<div>
+	<div>
+		<label for="inputReg">Registration Number: </label>
+		<input type="text" name="eingabe" id="inputRegNum" >
+	</div>
+	<div>
+		<label for="lat">Latitude: </label>
+		<label id="latID"></label>
+	</div>
+	<div>
+		<label for="long">Longitude: </label>
+		<label id="longID"></label>
+	</div>
+	<div>
+		<label for="fehler" id="errorMsg" class="error"></label>
+	</div>
+</div>
+<div id="map"></div>
+<div>
+	<button onclick="startCalculate()" class="btn btn-primary btn-lg">Locate Position</button>
+</div>
+
+
+
+<script>
+
+	//Making a map and tiles
+	const map = L.map('map').setView([0, 0], 2);
+	const attribution =
+		'&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+
+	const tileUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+	const tiles = L.tileLayer(tileUrl, { attribution });
+
+	var planeIcon = L.icon({
+		iconUrl: 'plane_images\\icon_1.png',
+		iconSize: [60, 40],
+		iconAnchor: [30, 20],
+	});
+
+	//marker with custom icon
+	const marker = L.marker([0, 0], { icon: planeIcon }).addTo(map);
+	tiles.addTo(map);
+
+
+
+	// api url where to collect data from
+	let api_url = 'https://app.goflightlabs.com/advanced-real-time-flights?';
+
+	//access_key we got from register, we can use 100 free requests per month
+	let access_Key = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiI0IiwianRpIjoiMjVhYTA2NWQwNDllMTQzZmQ4OThiMmQzZmQ3YjEwYWUzNjQ2ZDJjN2JlODZmMjhlOTc4YTM0ZTZjODBiYmRjNDRjNzM4M2EyNWRhOTFmYWIiLCJpYXQiOjE2Njk4MjE4MjgsIm5iZiI6MTY2OTgyMTgyOCwiZXhwIjoxNzAxMzU3ODI4LCJzdWIiOiIxOTA0NiIsInNjb3BlcyI6W119.BWsq_X9i4XCa2t8Lz4oOT2Jbs2EI5aT1SOOD4N9H_50zSDTHxCyZ8rL1JmtbcwX10SnPv9vcOl8_4DkXMSrDJA';
+
+	//registration Number from the plane (must be active and on a current flight)
+	//beispiel regNum: N502DN, N6707A
+	var regNumber = null;
+
+	//longitude = Längengrad (vorbelegt mit 0 wird später mit wert initialisiert)
+	var long = 0;
+
+	//latitude = breitengrad
+	var lat = 0;
+
+	//we need async function because of await for fetch response
+	async function getPos(params) {
+		const response = await fetch(api_url + params); //fetch request with url and parameters which are defined in start Calculate
+		const processedData = await response.json();  //we transform response to json object so we can process it after
+		console.log(processedData);  //log response in console for debugging purposes
+		try {    //try to do following if not throw error
+			long = processedData.data[0].geography.longitude;  //get long from json object
+			lat = processedData.data[0].geography.latitude;   //get lat from json object
+		} catch (error) {
+			console.error(error);
+			$("#errorMsg").text('Flugzeug mit regNum nicht gefunden'); //Transform error message in label with id #errorMsg
+		}
+
+		$("#longID").text(long);  // display lat and long with DOM on screen
+		$("#latID").text(lat);
+
+		//set marker on map
+		marker.setLatLng([lat, long]);
+		map.flyTo([lat, long], 5);
+	}
+
+
+	function startCalculate() { //function is called with onclick on button 
+		regNumber = document.getElementById('inputRegNum').value; //get regNum we typed in in input field 
+		let params = new URLSearchParams({  //params which are added to URL to get specific API response with regNum
+			access_key: access_Key,
+			regNum: regNumber
+		})
+		getPos(params);
+	}
+
+
+</script>
+</body>
+
+</html>
